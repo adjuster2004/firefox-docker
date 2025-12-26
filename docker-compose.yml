@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  firefox-hosts-editor:
+    build: .
+    container_name: firefox-hosts-editor
+    environment:
+      - DISPLAY=${DISPLAY}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ./data/hosts/system:/etc/hosts:rw
+      - ./data/firefox-profile:/tmp/firefox-profiles
+    ports:
+      - "5000:5000"
+    shm_size: "2gb"
+    privileged: true
+    restart: unless-stopped
+    network_mode: host  # Для лучшей работы с X11
