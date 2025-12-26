@@ -1,0 +1,17 @@
+# Включаем перенаправления
+RewriteEngine On
+
+# Разрешаем доступ к .htaccess для отладки
+<Files ".htaccess">
+    Require all granted
+</Files>
+
+# Перенаправляем запросы на PHP скрипты
+RewriteRule ^hosts\.txt$ /get-hosts.php [L]
+RewriteRule ^fix-permissions$ /fix-permissions.php [L]
+
+# Делаем index.html главной
+DirectoryIndex index.html
+
+# Разрешаем доступ ко всем файлам
+Require all granted
