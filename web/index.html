@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Hosts Editor</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --accent-primary: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --border: #475569;
+            --shadow: rgba(0, 0, 0, 0.4);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        h1 {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .file-path {
+            background: var(--bg-tertiary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        /* Панель кнопок */
+        .button-panel {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            border: 1px solid var(--border);
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #475569;
+        }
+
+        .btn-secondary:hover {
+            background: #64748b;
+        }
+
+        .btn-success {
+            background: var(--success);
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+        }
+
+        .btn-danger {
+            background: var(--error);
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Область редактирования */
+        .editor-container {
+            margin-bottom: 15px;
+            position: relative;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            min-height: 180px; /* Минимальная высота */
+        }
+
+        #hostsContent {
+            width: 100%;
+            height: 180px; /* Фиксированная высота для 10 строк */
+            min-height: 180px;
+            max-height: 180px; /* Запрещаем растягивание */
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 15px 15px 15px 55px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: none;
+            resize: none; /* Убираем возможность изменения размера */
+            transition: border-color 0.2s;
+            overflow-y: auto; /* Добавляем скролл при необходимости */
+        }
+
+        #hostsContent:focus {
+            outline: none;
+        }
+
+        /* Счетчик строк - исправлен */
+        .line-counter {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 40px;
+            background: var(--bg-tertiary);
+            border-right: 1px solid var(--border);
+            padding: 15px 10px 15px 0;
+            text-align: right;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
+            color: var(--text-muted);
+            overflow: hidden;
+            pointer-events: none;
+            user-select: none;
+            line-height: 1.5; /* Точное соответствие line-height текстового поля */
+        }
+
+        .line-counter span {
+            display: block;
+            height: 1.5em; /* Фиксированная высота для каждой строки */
+        }
+
+        /* Статус сообщения */
+        .status {
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            display: none;
+            font-weight: 500;
+            border: 1px solid transparent;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status.success {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .status.warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .status.info {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        /* Информационная панель */
+        .info-panel {
+            background: var(--bg-tertiary);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .info-panel h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            font-size: 13px;
+        }
+
+        .info-item {
+            background: var(--bg-secondary);
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .info-label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-family: monospace;
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .button-panel {
+                padding: 10px;
+                position: static;
+            }
+
+            .btn {
+                padding: 8px 12px;
+                font-size: 13px;
+                flex: 1;
+                min-width: 120px;
+            }
+
+            #hostsContent {
+                height: 180px;
+                min-height: 180px;
+                max-height: 180px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Анимация загрузки */
+        .loader {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Стили для текста в textarea */
+        textarea::placeholder {
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+
+        /* Стили для выделения текста */
+        textarea::selection {
+            background: rgba(59, 130, 246, 0.3);
+            color: white;
+        }
+
+        /* Стили для скроллбара */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Синхронизация скролла для счетчика строк */
+        .sync-scroll {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📝 Docker Hosts Editor</h1>
+                <div class="subtitle">Редактирование системного файла hosts в контейнере</div>
+            </div>
+            <div class="file-path">
+                /etc/hosts → ./data/hosts/system
+            </div>
+        </div>
+
+        <!-- Панель кнопок -->
+        <div class="button-panel">
+            <button class="btn btn-primary" onclick="loadHosts()" id="loadBtn">
+                <span>📥</span> Загрузить
+                <div class="loader" id="loadLoader"></div>
+            </button>
+
+            <button class="btn btn-success" onclick="saveHosts()" id="saveBtn">
+                <span>💾</span> Сохранить
+                <div class="loader" id="saveLoader"></div>
+            </button>
+
+            <button class="btn btn-secondary" onclick="addExample()">
+                <span>➕</span> Пример
+            </button>
+
+            <button class="btn btn-warning" onclick="checkPermissions()">
+                <span>🔧</span> Права
+            </button>
+
+            <button class="btn btn-danger" onclick="clearEditor()">
+                <span>🗑️</span> Очистить
+            </button>
+
+            <button class="btn btn-secondary" onclick="toggleInfo()" id="toggleInfoBtn">
+                <span>📋</span> Скрыть инфо
+            </button>
+        </div>
+
+        <!-- Статус сообщение -->
+        <div id="status" class="status"></div>
+
+        <!-- Область редактирования -->
+        <div class="editor-container">
+            <div class="line-counter" id="lineCounter"></div>
+            <textarea id="hostsContent" placeholder="Введите содержимое файла hosts...
+Пример:
+127.0.0.1    localhost
+::1          localhost
+
+# Ваши записи:
+# 192.168.1.100  server.local
+# 10.0.0.5       database.local"></textarea>
+        </div>
+
+        <!-- Информационная панель (скрываемая) -->
+        <div class="info-panel" id="infoPanel">
+            <h3><span>📊</span> Информация о системе</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Файл в контейнере</div>
+                    <div class="info-value">/etc/hosts</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Файл на хосте</div>
+                    <div class="info-value">./data/hosts/system</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Права доступа</div>
+                    <div class="info-value" id="filePerms">проверка...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Доступ на запись</div>
+                    <div class="info-value" id="writeAccess">проверка...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Размер файла</div>
+                    <div class="info-value" id="fileSize">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Последнее изменение</div>
+                    <div class="info-value" id="lastModified">—</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Переменные состояния
+        let isInfoVisible = true;
+        let autoSaveInterval;
+
+        // DOM элементы
+        const hostsContent = document.getElementById('hostsContent');
+        const lineCounter = document.getElementById('lineCounter');
+        const statusDiv = document.getElementById('status');
+        const infoPanel = document.getElementById('infoPanel');
+        const toggleInfoBtn = document.getElementById('toggleInfoBtn');
+        const loadBtn = document.getElementById('loadBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const loadLoader = document.getElementById('loadLoader');
+        const saveLoader = document.getElementById('saveLoader');
+        const fileSizeEl = document.getElementById('fileSize');
+        const lastModifiedEl = document.getElementById('lastModified');
+
+        // Показываем статус
+        function showStatus(message, type = 'success') {
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + type;
+            statusDiv.style.display = 'block';
+
+            // Автоматически скрываем через 3 секунды
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // Обновляем счетчик строк - ИСПРАВЛЕННЫЙ ВАРИАНТ
+        function updateLineCounter() {
+            const lines = hostsContent.value.split('\n').length;
+            const visibleLines = Math.max(10, lines); // Минимум 10 строк
+            let numbers = '';
+
+            for (let i = 1; i <= visibleLines; i++) {
+                numbers += `<span>${i}</span>`;
+            }
+            lineCounter.innerHTML = numbers;
+
+            // Синхронизируем скролл
+            lineCounter.scrollTop = hostsContent.scrollTop;
+        }
+
+        // Синхронизация скролла счетчика строк с textarea
+        function syncLineCounterScroll() {
+            lineCounter.scrollTop = hostsContent.scrollTop;
+        }
+
+        // Переключение информационной панели
+        function toggleInfo() {
+            isInfoVisible = !isInfoVisible;
+            infoPanel.style.display = isInfoVisible ? 'block' : 'none';
+            toggleInfoBtn.innerHTML = isInfoVisible ?
+                '<span>📋</span> Скрыть инфо' :
+                '<span>📋</span> Показать инфо';
+        }
+
+        // Обновляем информацию о файле
+        async function updateFileInfo() {
+            try {
+                const response = await fetch('/hosts.php?action=info');
+                if (response.ok) {
+                    const data = await response.json();
+
+                    document.getElementById('filePerms').textContent = data.permissions;
+                    document.getElementById('writeAccess').textContent = data.writable ?
+                        '✅ Доступен' : '❌ Недоступен';
+
+                    // Обновляем размер файла
+                    if (data.exists) {
+                        try {
+                            const fileResponse = await fetch('/hosts.php');
+                            const content = await fileResponse.text();
+                            fileSizeEl.textContent = formatBytes(content.length);
+                            lastModifiedEl.textContent = new Date().toLocaleTimeString();
+                        } catch (e) {
+                            fileSizeEl.textContent = '—';
+                            lastModifiedEl.textContent = '—';
+                        }
+                    }
+
+                    if (!data.writable) {
+                        showStatus('⚠️ Файл недоступен для записи. Нажмите "🔧 Права" для исправления.', 'warning');
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка обновления информации:', error);
+            }
+        }
+
+        // Форматирование байтов
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Загружаем hosts файл
+        async function loadHosts() {
+            // Показываем индикатор загрузки
+            loadBtn.disabled = true;
+            loadLoader.style.display = 'inline-block';
+
+            try {
+                const response = await fetch('/hosts.php');
+
+                if (response.ok) {
+                    const text = await response.text();
+                    hostsContent.value = text;
+                    updateLineCounter();
+                    showStatus('✅ Файл успешно загружен', 'success');
+                    updateFileInfo();
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                showStatus('❌ Ошибка загрузки: ' + error.message, 'error');
+                hostsContent.value =
+                    '# Ошибка загрузки файла\n' +
+                    '# Проверьте подключение и права доступа\n\n' +
+                    '# Стандартный шаблон:\n' +
+                    '127.0.0.1\tlocalhost\n' +
+                    '::1\t\tlocalhost ip6-localhost ip6-loopback\n\n' +
+                    '# Пример записи:\n' +
+                    '# 192.168.1.100\tserver.local';
+                updateLineCounter();
+            } finally {
+                // Скрываем индикатор загрузки
+                loadBtn.disabled = false;
+                loadLoader.style.display = 'none';
+            }
+        }
+
+        // Сохраняем hosts файл
+        async function saveHosts() {
+            const content = hostsContent.value.trim();
+
+            if (!content) {
+                showStatus('❌ Файл пустой', 'error');
+                return;
+            }
+
+            // Показываем индикатор сохранения
+            saveBtn.disabled = true;
+            saveLoader.style.display = 'inline-block';
+
+            try {
+                const response = await fetch('/save.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'hosts=' + encodeURIComponent(content)
+                });
+
+                const result = await response.text();
+
+                if (response.ok && (result.includes('SUCCESS') || result.includes('УСПЕШНО'))) {
+                    showStatus('✅ Файл успешно сохранен!', 'success');
+                    updateFileInfo();
+                } else {
+                    showStatus('❌ Ошибка сохранения', 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Ошибка сети: ' + error.message, 'error');
+            } finally {
+                // Скрываем индикатор сохранения
+                saveBtn.disabled = false;
+                saveLoader.style.display = 'none';
+            }
+        }
+
+        // Проверяем права доступа
+        async function checkPermissions() {
+            showStatus('🔍 Проверка прав доступа...', 'info');
+
+            try {
+                const response = await fetch('/hosts.php?action=fix');
+                const result = await response.text();
+
+                if (response.ok) {
+                    showStatus('✅ Права исправлены!', 'success');
+                    updateFileInfo();
+                } else {
+                    showStatus('❌ Не удалось исправить права', 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Ошибка сети при проверке прав', 'error');
+            }
+        }
+
+        // Добавляем пример
+        function addExample() {
+            const example = '\n\n# Примеры записей:\n' +
+                          '# 192.168.1.100\tserver.local\n' +
+                          '# 10.0.0.5\tdatabase.local\n' +
+                          '# 45.9.24.13\tastra.ru';
+
+            hostsContent.value += example;
+            hostsContent.focus();
+            updateLineCounter();
+            showStatus('➕ Пример добавлен', 'success');
+        }
+
+        // Очищаем редактор
+        function clearEditor() {
+            if (confirm('Очистить всё содержимое?')) {
+                hostsContent.value = '';
+                updateLineCounter();
+                showStatus('🗑️ Редактор очищен', 'warning');
+            }
+        }
+
+        // Автосохранение в localStorage
+        function startAutoSave() {
+            clearInterval(autoSaveInterval);
+            autoSaveInterval = setInterval(() => {
+                const content = hostsContent.value;
+                if (content.trim()) {
+                    localStorage.setItem('hosts_autosave', content);
+                }
+            }, 30000); // Каждые 30 секунд
+        }
+
+        // Восстановление из localStorage
+        function restoreFromAutoSave() {
+            const saved = localStorage.getItem('hosts_autosave');
+            if (saved) {
+                if (confirm('Восстановить автосохранённую версию?')) {
+                    hostsContent.value = saved;
+                    updateLineCounter();
+                    showStatus('📝 Восстановлено из автосохранения', 'info');
+                }
+            }
+        }
+
+        // Инициализация при загрузке
+        window.addEventListener('DOMContentLoaded', function() {
+            // Обновляем счетчик строк при вводе
+            hostsContent.addEventListener('input', updateLineCounter);
+
+            // Синхронизируем скролл при прокрутке
+            hostsContent.addEventListener('scroll', syncLineCounterScroll);
+
+            // Загружаем файл и информацию
+            loadHosts();
+
+            // Восстанавливаем из автосохранения
+            restoreFromAutoSave();
+
+            // Запускаем автосохранение
+            startAutoSave();
+
+            // Обновляем счетчик строк
+            updateLineCounter();
+
+            // Горячие клавиши
+            document.addEventListener('keydown', function(e) {
+                // Ctrl+S для сохранения
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    saveHosts();
+                }
+
+                // Ctrl+L для загрузки
+                if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+                    e.preventDefault();
+                    loadHosts();
+                }
+
+                // Ctrl+H для справки
+                if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+                    e.preventDefault();
+                    addExample();
+                }
+
+                // Ctrl+I для переключения инфо панели
+                if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+                    e.preventDefault();
+                    toggleInfo();
+                }
+            });
+
+            // Показываем подсказку по горячим клавишам
+            setTimeout(() => {
+                showStatus('💡 Горячие клавиши: Ctrl+S (сохранить), Ctrl+L (загрузить), Ctrl+H (пример), Ctrl+I (инфо)', 'info');
+            }, 2000);
+        });
+
+        // Предотвращаем закрытие страницы с несохраненными изменениями
+        window.addEventListener('beforeunload', function(e) {
+            const hasUnsavedChanges = hostsContent.value.trim() &&
+                hostsContent.value !== localStorage.getItem('hosts_autosave');
+
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = 'У вас есть несохранённые изменения. Вы уверены, что хотите уйти?';
+                return e.returnValue;
+            }
+        });
+    </script>
+</body>
+</html>
