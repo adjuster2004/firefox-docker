@@ -57,6 +57,26 @@ http://localhost:5000/
 <img width="861" height="482" alt="image" src="https://github.com/user-attachments/assets/6524b683-0eb2-42ca-b109-590cff513536" />
 
 
+
+- **Структура файлов**
+
+firefox-docker/
+├── run.sh                    # основной запуск
+├── stop.sh                   # остановка
+├── fix-permissions.sh        # редактирование прав
+├── Dockerfile                # сборка образа
+├── docker-compose.yml        
+|── README.md
+├── web/                      # веб-интерфейс
+│   ├── index.html
+│   ├── save.php
+│   ├── hosts.php
+|   ├── info.php
+│   └── .htaccess
+├── server/                   
+│   └── server.py
+└── data/hosts/system         # файл hosts
+
  
 ## 📄 Лицензия
 Этот проект распространяется под лицензией **MIT**.
