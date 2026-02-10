@@ -34,6 +34,7 @@ docker build -t firefox-hosts-editor .
 - **Запускаем контейнер**
 ```bash
 docker run -d \
+  --restart unless-stopped \
   --name firefox-hosts-editor \
   -e DISPLAY=$DISPLAY \
   -v /tmp/.X11-unix:/tmp/.X11-unix \
